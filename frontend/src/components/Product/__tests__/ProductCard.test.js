@@ -103,10 +103,10 @@ describe('ProductCard - TDD', () => {
       expect(defaultProps.onEdit).toHaveBeenCalledTimes(1);
     });
 
-    it('deve chamar onDelete quando botão Deletar é clicado', () => {
+    it('deve chamar onDelete quando botão Excluir é clicado', () => {
       render(<ProductCard {...defaultProps} />);
       
-      const deleteButton = screen.getByRole('button', { name: /deletar/i });
+      const deleteButton = screen.getByRole('button', { name: /excluir/i });
       fireEvent.click(deleteButton);
       
       expect(defaultProps.onDelete).toHaveBeenCalledWith(mockProduct);
@@ -139,7 +139,7 @@ describe('ProductCard - TDD', () => {
       render(<ProductCard {...minimalProps} />);
       
       expect(screen.queryByRole('button', { name: /editar/i })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /deletar/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /excluir/i })).not.toBeInTheDocument();
     });
 
     it('deve lidar com produto sem descrição', () => {

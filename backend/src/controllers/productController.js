@@ -398,64 +398,36 @@ export const productController = {
             _id: null,
             averageRating: { $avg: '$rating' },
             totalReviews: { $sum: 1 },
-            // Criar array com todos os ratings para contar depois
-            ratings: { $push: '$rating' }
+            // Criar contadores para cada rating
+            rating1Count: {
+              $sum: { $cond: [{ $eq: ['$rating', 1] }, 1, 0] }
+            },
+            rating2Count: {
+              $sum: { $cond: [{ $eq: ['$rating', 2] }, 1, 0] }
+            },
+            rating3Count: {
+              $sum: { $cond: [{ $eq: ['$rating', 3] }, 1, 0] }
+            },
+            rating4Count: {
+              $sum: { $cond: [{ $eq: ['$rating', 4] }, 1, 0] }
+            },
+            rating5Count: {
+              $sum: { $cond: [{ $eq: ['$rating', 5] }, 1, 0] }
+            }
           }
         },
-        // Calcular contagens por rating
+        // Formatar o resultado
         {
           $project: {
             _id: 0,
-            // Arredondar média para uma casa decimal
             averageRating: { $round: ['$averageRating', 1] },
             totalReviews: 1,
             ratingCounts: {
-              // Usar $filter e $size para contar cada rating
-              '1': {
-                $size: {
-                  $filter: {
-                    input: '$ratings',
-                    as: 'r',
-                    cond: { $eq: ['$$r', 1] }
-                  }
-                }
-              },
-              '2': {
-                $size: {
-                  $filter: {
-                    input: '$ratings',
-                    as: 'r',
-                    cond: { $eq: ['$$r', 2] }
-                  }
-                }
-              },
-              '3': {
-                $size: {
-                  $filter: {
-                    input: '$ratings',
-                    as: 'r',
-                    cond: { $eq: ['$$r', 3] }
-                  }
-                }
-              },
-              '4': {
-                $size: {
-                  $filter: {
-                    input: '$ratings',
-                    as: 'r',
-                    cond: { $eq: ['$$r', 4] }
-                  }
-                }
-              },
-              '5': {
-                $size: {
-                  $filter: {
-                    input: '$ratings',
-                    as: 'r',
-                    cond: { $eq: ['$$r', 5] }
-                  }
-                }
-              }
+              '1': '$rating1Count',
+              '2': '$rating2Count',
+              '3': '$rating3Count',
+              '4': '$rating4Count',
+              '5': '$rating5Count'
             }
           }
         }

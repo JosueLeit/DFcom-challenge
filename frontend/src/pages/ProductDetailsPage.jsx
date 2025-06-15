@@ -58,44 +58,48 @@ const ProductDetailsPage = () => {
   // Função para deletar produto
   const handleDelete = async () => {
     try {
-      const result = await toast.promise(
-        new Promise((resolve) => {
-          toast.info(
-            <div>
-              <p>Tem certeza que deseja excluir "{product.name}"?</p>
-              <div className="mt-2 flex justify-end gap-2">
-                <button 
-                  onClick={() => resolve(false)}
-                  className="px-2 py-1 bg-gray-200 text-gray-800 rounded"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  onClick={() => resolve(true)}
-                  className="px-2 py-1 bg-red-500 text-white rounded"
-                >
-                  Excluir
-                </button>
-              </div>
-            </div>,
-            {
-              autoClose: false,
-              closeButton: false,
-              closeOnClick: false,
-            }
-          );
-        }),
+      // Criar um toast de confirmação personalizado
+      const confirmationToastId = toast.info(
+        <div>
+          <p>Tem certeza que deseja excluir "{product.name}"?</p>
+          <div className="mt-2 flex justify-end gap-2">
+            <button 
+              onClick={() => {
+                toast.dismiss(confirmationToastId);
+              }}
+              className="px-2 py-1 bg-gray-200 text-gray-800 rounded"
+            >
+              Cancelar
+            </button>
+            <button 
+              onClick={async () => {
+                toast.dismiss(confirmationToastId);
+                try {
+                  await toast.promise(
+                    deleteProduct(product._id),
+                    {
+                      pending: 'Excluindo produto...',
+                      success: 'Produto excluído com sucesso!',
+                      error: 'Erro ao excluir produto'
+                    }
+                  );
+                  navigate('/');
+                } catch (error) {
+                  console.error('Erro ao deletar produto:', error);
+                }
+              }}
+              className="px-2 py-1 bg-red-500 text-white rounded"
+            >
+              Excluir
+            </button>
+          </div>
+        </div>,
         {
-          pending: 'Aguardando confirmação...',
-          success: 'Produto excluído com sucesso!',
-          error: 'Erro ao excluir produto'
+          autoClose: false,
+          closeButton: false,
+          closeOnClick: false,
         }
       );
-
-      if (result) {
-        await deleteProduct(product._id);
-        navigate('/');
-      }
     } catch (error) {
       console.error('Erro ao deletar produto:', error);
       toast.error('Erro ao excluir produto: ' + error.message);
@@ -187,7 +191,7 @@ const ProductDetailsPage = () => {
               
               <div className="flex gap-2">
                 <Link
-                  to={`/products/edit/${product._id}`}
+                  to={`/products/${product._id}/edit`}
                   className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md font-medium"
                 >
                   Editar Produto
