@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ReviewItem from './ReviewItem';
 import ReviewForm from './ReviewForm';
 import reviewService from '../services/reviewService';
@@ -12,6 +12,19 @@ const ReviewList = ({ productId, onReviewChange }) => {
   const [editingReview, setEditingReview] = useState(null);
   const { getProductRatingAverage } = useReviewStore();
 
+  // Função para atualizar o resumo das avaliações com debounce
+  const updateRatingAverage = useCallback(async () => {
+    if (!onReviewChange) return;
+    
+    try {
+      const ratingData = await getProductRatingAverage(productId);
+      onReviewChange(ratingData);
+    } catch (error) {
+      console.error('Erro ao atualizar média das avaliações:', error);
+    }
+  }, [productId, getProductRatingAverage, onReviewChange]);
+
+  // Efeito para carregar avaliações iniciais
   useEffect(() => {
     loadReviews();
   }, [productId]);
@@ -22,11 +35,8 @@ const ReviewList = ({ productId, onReviewChange }) => {
       const reviewsData = await reviewService.getReviewsByProduct(productId);
       setReviews(reviewsData);
       
-      // Atualiza o resumo das avaliações
-      if (onReviewChange) {
-        const ratingData = await getProductRatingAverage(productId);
-        onReviewChange(ratingData);
-      }
+      // Atualiza o resumo das avaliações apenas na carga inicial
+      await updateRatingAverage();
     } catch (error) {
       toast.error('Erro ao carregar avaliações: ' + (error.message || 'Tente novamente mais tarde'));
     } finally {
@@ -36,27 +46,27 @@ const ReviewList = ({ productId, onReviewChange }) => {
 
   const handleSubmit = async (formData) => {
     try {
+      let updatedReview;
+      
       if (editingReview) {
         // Atualizar avaliação existente
-        const updatedReview = await reviewService.updateReview(editingReview._id, formData);
+        updatedReview = await reviewService.updateReview(editingReview._id, formData);
         setReviews(reviews.map(review => 
           review._id === editingReview._id ? updatedReview : review
         ));
         toast.success('Avaliação atualizada com sucesso!');
       } else {
         // Criar nova avaliação
-        const newReview = await reviewService.createReview(productId, formData);
-        setReviews([newReview, ...reviews]);
+        updatedReview = await reviewService.createReview(productId, formData);
+        setReviews([updatedReview, ...reviews]);
         toast.success('Avaliação enviada com sucesso!');
       }
+      
       setShowForm(false);
       setEditingReview(null);
 
-      // Atualiza o resumo das avaliações
-      if (onReviewChange) {
-        const ratingData = await getProductRatingAverage(productId);
-        onReviewChange(ratingData);
-      }
+      // Atualiza o resumo após a modificação
+      await updateRatingAverage();
     } catch (error) {
       const errorMessage = error.message || error.details?.map(d => d.message).join(', ') || 'Tente novamente mais tarde';
       toast.error('Erro ao salvar avaliação: ' + errorMessage);
@@ -70,7 +80,6 @@ const ReviewList = ({ productId, onReviewChange }) => {
 
   const handleDelete = async (reviewId) => {
     try {
-      // Criamos uma referência para o toast de confirmação
       let confirmToastId = null;
 
       const result = await new Promise((resolve) => {
@@ -108,11 +117,7 @@ const ReviewList = ({ productId, onReviewChange }) => {
 
       if (result) {
         await toast.promise(
-          Promise.all([
-            reviewService.deleteReview(reviewId),
-            // Pequeno delay para garantir que o backend processou a exclusão
-            new Promise(resolve => setTimeout(resolve, 500))
-          ]),
+          reviewService.deleteReview(reviewId),
           {
             pending: 'Excluindo avaliação...',
             success: 'Avaliação excluída com sucesso!',
@@ -120,18 +125,15 @@ const ReviewList = ({ productId, onReviewChange }) => {
           }
         );
 
-        // Atualiza a lista local apenas após confirmar a exclusão no backend
+        // Atualiza a lista local
         setReviews(reviews.filter(review => review._id !== reviewId));
 
-        // Atualiza o resumo das avaliações
-        if (onReviewChange) {
-          const ratingData = await getProductRatingAverage(productId);
-          onReviewChange(ratingData);
-        }
+        // Atualiza o resumo após a exclusão
+        await updateRatingAverage();
       }
     } catch (error) {
       console.error('Erro ao excluir avaliação:', error);
-      toast.error('Erro ao excluir avaliação: ' + (error.response?.data?.message || error.message || 'Tente novamente mais tarde'));
+      toast.error('Erro ao excluir avaliação: ' + (error.message || 'Tente novamente mais tarde'));
     }
   };
 

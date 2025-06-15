@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useProductStore } from '../stores/productStore';
@@ -15,6 +15,16 @@ const ProductDetailsPage = () => {
 
   const { getProductById, deleteProduct } = useProductStore();
   const { getProductRatingAverage } = useReviewStore();
+
+  // Função para atualizar média das avaliações
+  const updateRatingAverage = useCallback(async () => {
+    try {
+      const ratingData = await getProductRatingAverage(id);
+      setRatingAverage(ratingData);
+    } catch (err) {
+      console.error('Erro ao atualizar média das avaliações:', err);
+    }
+  }, [id, getProductRatingAverage]);
 
   // Carregar dados do produto
   useEffect(() => {
@@ -34,6 +44,7 @@ const ProductDetailsPage = () => {
       } catch (err) {
         console.error('Erro ao carregar dados do produto:', err);
         setError('Não foi possível carregar os dados do produto');
+        toast.error('Erro ao carregar dados do produto');
       } finally {
         setLoading(false);
       }
@@ -91,21 +102,17 @@ const ProductDetailsPage = () => {
     }
   };
 
-  // Função para renderizar estrelas
-  const renderStars = (rating) => {
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <span
-          key={i}
-          className={`text-xl ${i <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
-        >
-          ★
-        </span>
-      );
-    }
-    return stars;
-  };
+  // Renderizar estrelas
+  const renderStars = useCallback((rating) => {
+    return Array.from({ length: 5 }, (_, index) => (
+      <span
+        key={index}
+        className={`text-xl ${index < rating ? 'text-yellow-400' : 'text-gray-300'}`}
+      >
+        ★
+      </span>
+    ));
+  }, []);
 
   // Função para formatar preço
   const formatPrice = (price) => {
@@ -115,55 +122,25 @@ const ProductDetailsPage = () => {
     }).format(price);
   };
 
-  // Renderização do loading
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando produto...</p>
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
-  // Renderização do erro
-  if (error) {
+  if (error || !product) {
     return (
-      <div className="text-center py-12">
-        <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full">
-          <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Erro ao carregar produto</h3>
-        <p className="text-gray-500 mb-4">{error}</p>
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <h2 className="text-xl font-semibold text-red-600 mb-4">
+          {error || 'Produto não encontrado'}
+        </h2>
         <Link
-          to="/"
-          className="text-blue-600 hover:text-blue-800"
+          to="/products"
+          className="text-blue-500 hover:text-blue-700 transition-colors"
         >
-          Voltar para a lista de produtos
-        </Link>
-      </div>
-    );
-  }
-
-  // Renderização do produto não encontrado
-  if (!product) {
-    return (
-      <div className="text-center py-12">
-        <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-yellow-100 rounded-full">
-          <svg className="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-        </div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Produto não encontrado</h3>
-        <p className="text-gray-500 mb-4">O produto que você está procurando não existe ou foi removido.</p>
-        <Link
-          to="/"
-          className="text-blue-600 hover:text-blue-800"
-        >
-          Voltar para a lista de produtos
+          ← Voltar para lista de produtos
         </Link>
       </div>
     );
