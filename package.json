@@ -1,0 +1,32 @@
+{
+  "name": "dfcom-product-reviews",
+  "version": "1.0.0",
+  "description": "Sistema de Avaliação de Produtos - DFcom Sistemas",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run start --workspace=frontend",
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "test": "npm run test --workspace=backend && npm run test --workspace=frontend",
+    "lint": "npm run lint --workspace=backend && npm run lint --workspace=frontend",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:build": "docker-compose build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "product-reviews",
+    "dfcom",
+    "react",
+    "express",
+    "mongodb"
+  ],
+  "author": "DFcom Sistemas",
+  "license": "MIT"
+} 
