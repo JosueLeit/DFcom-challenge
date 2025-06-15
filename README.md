@@ -40,7 +40,7 @@ npm install
 # Executar em modo desenvolvimento
 npm run dev
 
-# Backend será executado na porta 5000
+# Backend será executado na porta 3001
 # Frontend será executado na porta 3000
 ```
 
