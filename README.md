@@ -40,7 +40,7 @@ npm install
 # Executar em modo desenvolvimento
 npm run dev
 
-# Backend será executado na porta 5000
+# Backend será executado na porta 3001
 # Frontend será executado na porta 3000
 ```
 
@@ -102,9 +102,8 @@ dfcom-product-reviews/
 - [x] Cálculo de média das avaliações
 - [x] Interface responsiva
 - [x] Validações de dados
-- [x] Containerização Docker
-
-### 🚧 Em Desenvolvimento
+- [x] Containerização Docker (front, back e BD)
+- [x] script com seeds para o banco
 - [x] Filtros avançados
 - [x] Paginação
 - [x] Busca por texto
@@ -115,5 +114,3 @@ dfcom-product-reviews/
 Este projeto foi desenvolvido como parte do desafio técnico da DFcom Sistemas.
 
 ---
-
-**Desenvolvido com ❤️ para DFcom Sistemas**
