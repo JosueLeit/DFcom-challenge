@@ -75,6 +75,24 @@ const reviewService = {
       console.error(`Erro ao deletar avaliação ${id}:`, error);
       throw error;
     }
+  },
+
+  /**
+   * Buscar média das avaliações de um produto
+   * @param {string} productId - ID do produto
+   */
+  async getProductRatingAverage(productId) {
+    try {
+      const response = await api.get(`/api/products/${productId}/rating`);
+      return response.data.data || {
+        averageRating: 0,
+        totalReviews: 0,
+        ratingCounts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+      };
+    } catch (error) {
+      console.error(`Erro ao buscar média das avaliações do produto ${productId}:`, error);
+      throw error;
+    }
   }
 };
 

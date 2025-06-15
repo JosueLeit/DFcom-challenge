@@ -1,5 +1,6 @@
 import Product from '../models/Product.js';
 import Review from '../models/Review.js';
+import mongoose from 'mongoose';
 
 export const productController = {
   // POST /products - Criar produto
@@ -383,48 +384,93 @@ export const productController = {
         });
       }
 
-      // Buscar todas as reviews do produto (sem agregação)
-      const reviews = await Review.find({ productId: id });
-
-      if (reviews.length === 0) {
-        return res.json({
-          success: true,
-          message: 'Média calculada (sem avaliações)',
-          data: {
-            productId: id,
-            averageRating: 0,
-            totalReviews: 0,
+      // Usar agregação para calcular média e contagens em uma única query
+      const [result] = await Review.aggregate([
+        // Filtrar reviews do produto
+        {
+          $match: {
+            productId: new mongoose.Types.ObjectId(id)
+          }
+        },
+        // Agrupar e calcular métricas
+        {
+          $group: {
+            _id: null,
+            averageRating: { $avg: '$rating' },
+            totalReviews: { $sum: 1 },
+            // Criar array com todos os ratings para contar depois
+            ratings: { $push: '$rating' }
+          }
+        },
+        // Calcular contagens por rating
+        {
+          $project: {
+            _id: 0,
+            // Arredondar média para uma casa decimal
+            averageRating: { $round: ['$averageRating', 1] },
+            totalReviews: 1,
             ratingCounts: {
-              '1': 0,
-              '2': 0,
-              '3': 0,
-              '4': 0,
-              '5': 0
+              // Usar $filter e $size para contar cada rating
+              '1': {
+                $size: {
+                  $filter: {
+                    input: '$ratings',
+                    as: 'r',
+                    cond: { $eq: ['$$r', 1] }
+                  }
+                }
+              },
+              '2': {
+                $size: {
+                  $filter: {
+                    input: '$ratings',
+                    as: 'r',
+                    cond: { $eq: ['$$r', 2] }
+                  }
+                }
+              },
+              '3': {
+                $size: {
+                  $filter: {
+                    input: '$ratings',
+                    as: 'r',
+                    cond: { $eq: ['$$r', 3] }
+                  }
+                }
+              },
+              '4': {
+                $size: {
+                  $filter: {
+                    input: '$ratings',
+                    as: 'r',
+                    cond: { $eq: ['$$r', 4] }
+                  }
+                }
+              },
+              '5': {
+                $size: {
+                  $filter: {
+                    input: '$ratings',
+                    as: 'r',
+                    cond: { $eq: ['$$r', 5] }
+                  }
+                }
+              }
             }
           }
-        });
-      }
-
-      // Calcular métricas manualmente
-      const totalReviews = reviews.length;
-      const averageRating = Math.round((reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews) * 10) / 10;
-
-      const ratingCounts = {
-        '1': reviews.filter(r => r.rating === 1).length,
-        '2': reviews.filter(r => r.rating === 2).length,
-        '3': reviews.filter(r => r.rating === 3).length,
-        '4': reviews.filter(r => r.rating === 4).length,
-        '5': reviews.filter(r => r.rating === 5).length
-      };
+        }
+      ]) || [{
+        averageRating: 0,
+        totalReviews: 0,
+        ratingCounts: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 }
+      }];
 
       res.json({
         success: true,
         message: 'Média das avaliações calculada com sucesso',
         data: {
           productId: id,
-          averageRating,
-          totalReviews,
-          ratingCounts
+          ...result
         }
       });
     } catch (error) {

@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useProductStore } from '../stores/productStore';
 import { useReviewStore } from '../stores/reviewStore';
+import ReviewList from '../components/ReviewList';
 
 const ProductDetailsPage = () => {
   const { id } = useParams();
@@ -10,17 +11,10 @@ const ProductDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [product, setProduct] = useState(null);
-  const [reviews, setReviews] = useState([]);
   const [ratingAverage, setRatingAverage] = useState(null);
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [newReview, setNewReview] = useState({
-    author: '',
-    rating: 5,
-    comment: ''
-  });
 
   const { getProductById, deleteProduct } = useProductStore();
-  const { getReviewsByProduct, createReview, getProductRatingAverage } = useReviewStore();
+  const { getProductRatingAverage } = useReviewStore();
 
   // Carregar dados do produto
   useEffect(() => {
@@ -29,15 +23,13 @@ const ProductDetailsPage = () => {
         setLoading(true);
         setError(null);
 
-        // Carregar produto, avaliações e média em paralelo
-        const [productData, reviewsData, ratingData] = await Promise.all([
+        // Carregar produto e média em paralelo
+        const [productData, ratingData] = await Promise.all([
           getProductById(id),
-          getReviewsByProduct(id),
           getProductRatingAverage(id)
         ]);
 
         setProduct(productData);
-        setReviews(reviewsData);
         setRatingAverage(ratingData);
       } catch (err) {
         console.error('Erro ao carregar dados do produto:', err);
@@ -50,7 +42,7 @@ const ProductDetailsPage = () => {
     if (id) {
       loadProductData();
     }
-  }, [id, getProductById, getReviewsByProduct, getProductRatingAverage]);
+  }, [id, getProductById, getProductRatingAverage]);
 
   // Função para deletar produto
   const handleDelete = async () => {
@@ -115,58 +107,6 @@ const ProductDetailsPage = () => {
     return stars;
   };
 
-  // Função para submeter nova avaliação
-  const handleSubmitReview = async (e) => {
-    e.preventDefault();
-    
-    if (!newReview.author.trim() || !newReview.comment.trim()) {
-      toast.error('Por favor, preencha todos os campos obrigatórios');
-      return;
-    }
-
-    // Validação adicional
-    if (newReview.comment.trim().length < 3) {
-      toast.error('O comentário deve ter pelo menos 3 caracteres');
-      return;
-    }
-
-    if (newReview.author.trim().length < 2) {
-      toast.error('O nome deve ter pelo menos 2 caracteres');
-      return;
-    }
-
-    try {
-      await createReview(id, newReview);
-      
-      // Recarregar avaliações e média
-      const [reviewsData, ratingData] = await Promise.all([
-        getReviewsByProduct(id),
-        getProductRatingAverage(id)
-      ]);
-      
-      setReviews(reviewsData);
-      setRatingAverage(ratingData);
-      setShowReviewForm(false);
-      setNewReview({ author: '', rating: 5, comment: '' });
-      
-      toast.success('Avaliação adicionada com sucesso!');
-    } catch (err) {
-      console.error('Erro ao criar avaliação:', err);
-      
-      // Melhor tratamento de erro baseado na resposta do servidor
-      if (err.response?.data?.details && Array.isArray(err.response.data.details)) {
-        const errorMessages = err.response.data.details.map(detail => 
-          `${detail?.field || 'Campo'}: ${detail?.message || 'Erro de validação'}`
-        ).join('\n');
-        toast.error(`Erro de validação:\n${errorMessages}`);
-      } else if (err.response?.data?.message) {
-        toast.error(`Erro: ${err.response.data.message}`);
-      } else {
-        toast.error('Erro ao adicionar avaliação. Tente novamente.');
-      }
-    }
-  };
-
   // Função para formatar preço
   const formatPrice = (price) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -198,34 +138,39 @@ const ProductDetailsPage = () => {
         </div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">Erro ao carregar produto</h3>
         <p className="text-gray-500 mb-4">{error}</p>
-        <button
-          onClick={() => navigate('/')}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+        <Link
+          to="/"
+          className="text-blue-600 hover:text-blue-800"
         >
-          Voltar para produtos
-        </button>
+          Voltar para a lista de produtos
+        </Link>
       </div>
     );
   }
 
-  // Renderização se produto não encontrado
+  // Renderização do produto não encontrado
   if (!product) {
     return (
       <div className="text-center py-12">
+        <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-yellow-100 rounded-full">
+          <svg className="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">Produto não encontrado</h3>
-        <p className="text-gray-500 mb-4">O produto que você está procurando não existe.</p>
-        <button
-          onClick={() => navigate('/')}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+        <p className="text-gray-500 mb-4">O produto que você está procurando não existe ou foi removido.</p>
+        <Link
+          to="/"
+          className="text-blue-600 hover:text-blue-800"
         >
-          Voltar para produtos
-        </button>
+          Voltar para a lista de produtos
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Breadcrumb */}
       <nav className="mb-6">
         <ol className="flex items-center space-x-2 text-sm text-gray-500">
@@ -243,11 +188,10 @@ const ProductDetailsPage = () => {
         </ol>
       </nav>
 
-      {/* Informações do Produto */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Informações principais */}
-          <div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Informações principais */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-start justify-between mb-4">
               <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
               <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
@@ -266,7 +210,7 @@ const ProductDetailsPage = () => {
               
               <div className="flex gap-2">
                 <Link
-                  to={`/products/${product._id}/edit`}
+                  to={`/products/edit/${product._id}`}
                   className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md font-medium"
                 >
                   Editar Produto
@@ -279,11 +223,25 @@ const ProductDetailsPage = () => {
                 </button>
               </div>
             </div>
-          </div>
 
-          {/* Estatísticas de Avaliações */}
-          <div className="bg-gray-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Avaliações</h3>
+            {/* Especificações */}
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold mb-4">Especificações</h2>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <ul className="list-disc list-inside space-y-2 text-gray-600">
+                  {product.specifications?.map((spec, index) => (
+                    <li key={index}>{spec}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Estatísticas de Avaliações */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Resumo das Avaliações</h3>
             
             {ratingAverage && ratingAverage.totalReviews > 0 ? (
               <div>
@@ -324,122 +282,18 @@ const ProductDetailsPage = () => {
             ) : (
               <p className="text-gray-500">Nenhuma avaliação ainda</p>
             )}
-            
-            <button
-              onClick={() => setShowReviewForm(!showReviewForm)}
-              className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium"
-            >
-              {showReviewForm ? 'Cancelar' : 'Escrever Avaliação'}
-            </button>
           </div>
         </div>
       </div>
 
-      {/* Formulário de Nova Avaliação */}
-      {showReviewForm && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Nova Avaliação</h3>
-          
-          <form onSubmit={handleSubmitReview}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label htmlFor="author" className="block text-sm font-medium text-gray-700 mb-1">
-                  Seu Nome *
-                </label>
-                <input
-                  type="text"
-                  id="author"
-                  value={newReview.author}
-                  onChange={(e) => setNewReview(prev => ({ ...prev, author: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="rating" className="block text-sm font-medium text-gray-700 mb-1">
-                  Nota
-                </label>
-                <select
-                  id="rating"
-                  value={newReview.rating}
-                  onChange={(e) => setNewReview(prev => ({ ...prev, rating: parseInt(e.target.value) }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {[5, 4, 3, 2, 1].map(rating => (
-                    <option key={rating} value={rating}>
-                      {rating} estrela{rating !== 1 ? 's' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            
-            <div className="mb-4">
-              <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-1">
-                Comentário *
-              </label>
-              <textarea
-                id="comment"
-                rows={4}
-                value={newReview.comment}
-                onChange={(e) => setNewReview(prev => ({ ...prev, comment: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Compartilhe sua experiência com este produto..."
-                required
-              />
-            </div>
-            
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md font-medium"
-              >
-                Publicar Avaliação
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowReviewForm(false)}
-                className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-md font-medium"
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
+      {/* Lista de avaliações */}
+      <div className="mt-8 bg-white rounded-lg shadow-md">
+        <div className="p-6">
+          <ReviewList 
+            productId={product._id} 
+            onReviewChange={setRatingAverage}
+          />
         </div>
-      )}
-
-      {/* Lista de Avaliações */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">
-          Avaliações ({reviews.length})
-        </h3>
-        
-        {reviews.length > 0 ? (
-          <div className="space-y-6">
-            {reviews.map((review) => (
-              <div key={review._id} className="border-b border-gray-200 pb-6 last:border-b-0">
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <h4 className="font-medium text-gray-900">{review.author}</h4>
-                    <div className="flex items-center mt-1">
-                      {renderStars(review.rating)}
-                      <span className="ml-2 text-sm text-gray-500">
-                        {new Date(review.createdAt).toLocaleDateString('pt-BR')}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                <p className="text-gray-700 leading-relaxed">{review.comment}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500 text-center py-8">
-            Nenhuma avaliação ainda. Seja o primeiro a avaliar este produto!
-          </p>
-        )}
       </div>
     </div>
   );
